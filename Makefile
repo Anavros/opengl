@@ -1,11 +1,11 @@
 TARGET:= main
 C_SRCS:= $(wildcard *.c)
 C_OBJS:= ${C_SRCS:.c=.o}
-CFLAGS:= -Wall -Wextra -g -fdiagnostics-color=auto -ftrapv -lGLEW -lGL -lglut -lm -lGLU
+CFLAGS:= -Wall -Wextra -g -fdiagnostics-color=auto -ftrapv
 .PHONY: all clean run check test grind
 
 all: $(C_OBJS)
-	$(CC) $(CFLAGS) -o $(TARGET) $(C_OBJS)
+	$(CC) $(CFLAGS) `pkg-config --cflags glfw3` -o $(TARGET) $(C_OBJS) `pkg-config --libs glfw3` -lGL
 
 clean:
 	@- $(RM) $(TARGET)

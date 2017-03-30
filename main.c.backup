@@ -3,15 +3,16 @@
 #include <stdio.h>
 
 #define GL_GLEXT_PROTOTYPES
-#include <GLFW/glfw3.h>
 
-#include "linmath.h"
-
+//#include "GL/glew.h"
+#include "GL/gl.h"
+#include "GL/glut.h"
+#include "GL/glu.h"
 
 #define V_SHADER "v.glsl"
 #define F_SHADER "f.glsl"
 
-
+// Load a file as a null-terminated string.
 char* load(const char* filename) {
     FILE* f = fopen(filename, "r");
     if (!f) {
@@ -33,19 +34,6 @@ char* load(const char* filename) {
     return buffer;
 }
 
-
-void error_callback(int error, const char* description) {
-    fprintf(stderr, "Error: %s\n", description);
-}
-
-
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
-        puts("Pressed!");
-        glfwSetWindowShouldClose(window, 1);
-    }
-}
-
 typedef struct Attributes Attributes;
 struct Attributes {
     float x, y;
@@ -56,25 +44,6 @@ const Attributes vertices[3] =
     , { 1.0f, -1.0f }
     , { 1.0f,  1.0f }
 };
-
-
-void run(GLFWwindow* window, GLuint program) {
-    glfwSetKeyCallback(window, key_callback);
-    while (!glfwWindowShouldClose(window)) {
-        int w, h;
-        glfwGetFramebufferSize(window, &w, &h);
-        //float ratio = w / (float) h;
-        glViewport(0, 0, w, h);
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        glUseProgram(program);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
-
-        glfwSwapBuffers(window);
-        glfwPollEvents();
-    }
-}
-
 
 GLuint gen_buffer(Attributes* attrs) {
     GLuint buffer;
@@ -107,25 +76,51 @@ GLuint gen_program(GLuint vs, GLuint fs) {
 }
 
 
-int main(void) {
-    glfwSetErrorCallback(error_callback);
+void update_display(void) {
+    // How do I pass in variables?
+    puts("Update.");
+    glClear(GL_COLOR_BUFFER_BIT);
+    //glUseProgram(program);
+    //glDrawArrays(GL_TRIANGLES, 0, 3);
+    glutSwapBuffers();
+}
 
-    int init_success = glfwInit();
-    if (!init_success) { return 1; }
 
-    GLFWwindow* window = glfwCreateWindow(300, 200, "GLFW3!", NULL, NULL);
-    if (!window) { return 1; }
+void idle_display(void) {
+}
 
-    glfwMakeContextCurrent(window);
 
-    //GLuint attributes, vs, fs, program;
+void key_press(unsigned char key, int x, int y) {
+    puts("Pressed!");
+    glutLeaveMainLoop();
+}
+
+
+int main(int argc, char **argv) {
+    glutInit(&argc, argv);
+    glutInitWindowSize(300, 200);
+    glutInitWindowPosition(50, 50);
+    glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE);
+
+    glutCreateWindow("Hello There");
+    glutDisplayFunc(&update_display);
+    glutIdleFunc(&idle_display);
+    glutKeyboardFunc(&key_press);
+
+    /*
+    glewInit();
+    if(!GLEW_VERSION_2_0) {
+        fprintf(stderr, "OpenGL 2.0 is not available.\n");
+        return 1;
+    }
+    */
+
+    printf("OpenGL v%s\n", glGetString(GL_VERSION));
+
     GLuint vs = gen_shader(load(V_SHADER), GL_VERTEX_SHADER);
     GLuint fs = gen_shader(load(F_SHADER), GL_FRAGMENT_SHADER);
     GLuint program = gen_program(vs, fs);
 
-
-    run(window, program);
-    glfwDestroyWindow(window);
-    glfwTerminate();
+    glutMainLoop();
     return 0;
 }
