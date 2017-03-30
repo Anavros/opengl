@@ -45,12 +45,42 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     }
 }
 
+typedef struct Attributes Attributes;
+struct Attributes {
+    float x, y;
+};
 
-void run(GLFWwindow* window) {
+const Attributes vertices[3] =
+    { {-1.0f, -1.0f }
+    , { 1.0f, -1.0f }
+    , { 1.0f,  1.0f }
+};
+
+
+void run(GLFWwindow* window, GLuint program) {
     glfwSetKeyCallback(window, key_callback);
     while (!glfwWindowShouldClose(window)) {
+        int w, h;
+        glfwGetFramebufferSize(window, &w, &h);
+        //float ratio = w / (float) h;
+        glViewport(0, 0, w, h);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        glUseProgram(program);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+
+        glfwSwapBuffers(window);
         glfwPollEvents();
     }
+}
+
+
+GLuint gen_buffer(Attributes* attrs) {
+    GLuint buffer;
+    glGenBuffer(1, &buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, buffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(attrs), attrs, GL_STATIC_DRAW);
+    return buffer;
 }
 
 
@@ -85,6 +115,7 @@ int main(void) {
     GLFWwindow* window = glfwCreateWindow(300, 200, "GLFW3!", NULL, NULL);
     if (!window) { return 1; }
 
+    glfwMakeContextCurrent(window);
 
     //GLuint attributes, vs, fs, program;
     GLuint vs = gen_shader(load(V_SHADER), GL_VERTEX_SHADER);
@@ -92,8 +123,7 @@ int main(void) {
     GLuint program = gen_program(vs, fs);
 
 
-    glfwMakeContextCurrent(window);
-    run(window);
+    run(window, program);
     glfwDestroyWindow(window);
     glfwTerminate();
     return 0;
