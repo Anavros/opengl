@@ -2,7 +2,7 @@
 TARGET:= testing
 C_SRCS:= testing.c
 C_OBJS:= testing.o
-CFLAGS:= -Wall -fdiagnostics-color=auto `pkg-config --cflags glfw3`
+CFLAGS:= -Wall -fdiagnostics-color=auto `pkg-config --cflags glfw3` -lGL
 LGLFW3:= `pkg-config --libs glfw3`
 .PHONY: all clean run
 
