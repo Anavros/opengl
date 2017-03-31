@@ -1,5 +1,6 @@
 *.o
 *.swp
-testing
+*.backup
+main
 linmath.h
 grind.sup

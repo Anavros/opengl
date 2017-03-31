@@ -50,26 +50,6 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     }
 }
 
-
-void run(GLFWwindow* window, GLuint program, GLuint verts) {
-    glfwSetKeyCallback(window, key_callback);
-    while (!glfwWindowShouldClose(window)) {
-        int w, h;
-        glfwGetFramebufferSize(window, &w, &h);
-        float ratio = w / (float) h;
-        (void)ratio;
-        (void)verts;
-        glViewport(0, 0, w, h);
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        glUseProgram(program);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
-
-        glfwSwapBuffers(window);
-        glfwPollEvents();
-    }
-}
-
 GLfloat vertices[] =
     { -0.5f, -0.5f
     ,  0.5f, -0.5f
@@ -77,39 +57,39 @@ GLfloat vertices[] =
     };
 
 
-GLuint gen_buffer(GLfloat *verts) {
+GLuint gen_buffer(void) {
     GLuint buffer;
     glGenBuffers(1, &buffer);
-    glBindBuffer(GL_ARRAY_BUFFER, buffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
     return buffer;
 }
 
 
-GLuint gen_shader(const char *text, GLuint shader) {
+GLuint gen_vertex_array(GLuint buffer, GLfloat *verts) {
+    GLuint vertex_array;
+    glGenVertexArrays(1, &vertex_array);
+
+    glBindVertexArray(vertex_array);
+    glBindBuffer(GL_ARRAY_BUFFER, buffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2*sizeof(GLfloat), (GLvoid*)0);
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
+    return vertex_array;
+}
+
+
+GLuint gen_shader(const char *text, GLuint shader, const char *label) {
     glShaderSource(shader, 1, &text, NULL);
-    // TODO: include error checking.
     glCompileShader(shader);
 
     // Error checking.
-    GLint err = 0;
-    glGetShaderiv(shader, GL_COMPILE_STATUS, &err);
-    if (err) {
-        //GLsizei log_size = 0;
-        GLchar log[512];
+    GLint success = 0;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+    if (!success) {
         puts("Shader compilation error.");
-        /*
-        glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &log_size);
-        printf("LOG SIZE: %d\n", log_size);
-        log = malloc(sizeof(GLchar) * log_size);
-        if (!log) {
-            puts("Malloc failed! Panic!");
-            return 0;
-        }
-        glGetShaderInfoLog(shader, log_size, NULL, log);
-        */
+        GLchar log[512];
         glGetShaderInfoLog(shader, 512, NULL, log);
-        fprintf(stderr, "%s\n", log);
+        fprintf(stderr, "%s: %s\n", label, log);
         glDeleteShader(shader);
         return 0;
     }
@@ -123,13 +103,13 @@ GLuint gen_shader(const char *text, GLuint shader) {
 
 GLuint gen_v_shader(const char *text) {
     GLuint shader = glCreateShader(GL_VERTEX_SHADER);
-    return gen_shader(text, shader);
+    return gen_shader(text, shader, "Vertex Shader");
 }
 
 
 GLuint gen_f_shader(const char *text) {
     GLuint shader = glCreateShader(GL_FRAGMENT_SHADER);
-    return gen_shader(text, shader);
+    return gen_shader(text, shader, "Fragment Shader");
 }
 
 
@@ -138,7 +118,39 @@ GLuint gen_program(GLuint vs, GLuint fs) {
     glAttachShader(program, vs);
     glAttachShader(program, fs);
     glLinkProgram(program);
+
+    GLint success = 0;
+    glGetProgramiv(program, GL_LINK_STATUS, &success);
+    if (!success) {
+        GLchar log[512];
+        glGetProgramInfoLog(program, 512, NULL, log);
+        fprintf(stderr, "%s\n", log);
+        glDeleteProgram(program);
+        return 0;
+    }
     return program;
+}
+
+
+// missing args
+void run(GLFWwindow* window, GLuint program, GLuint vao) {
+    glfwSetKeyCallback(window, key_callback);
+    while (!glfwWindowShouldClose(window)) {
+        int w, h;
+        glfwGetFramebufferSize(window, &w, &h);
+        float ratio = w / (float) h;
+        (void)ratio;
+        glViewport(0, 0, w, h);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        glBindVertexArray(vao);
+        glUseProgram(program);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glBindVertexArray(0);
+
+        glfwSwapBuffers(window);
+        glfwPollEvents();
+    }
 }
 
 
@@ -153,14 +165,20 @@ int main(void) {
 
     glfwMakeContextCurrent(window);
 
-    //GLuint attributes, vs, fs, program;
+    // Create the rendering program.
     GLuint vs = gen_v_shader(load(V_SHADER));
     GLuint fs = gen_f_shader(load(F_SHADER));
     GLuint program = gen_program(vs, fs);
-    GLuint verts = gen_buffer(vertices); // global vertices
+
+    // Delete shaders now that they've been linked.
+    glDeleteShader(vs);
+    glDeleteShader(fs);
+
+    GLuint buffer = gen_buffer();
+    GLuint vao = gen_vertex_array(buffer, vertices); // global vertices
 
 
-    run(window, program, verts);
+    run(window, program, vao);
     glfwDestroyWindow(window);
     glfwTerminate();
     return 0;
