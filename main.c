@@ -132,20 +132,18 @@ GLuint gen_program(GLuint vs, GLuint fs) {
 }
 
 
-// missing args
 void run(GLFWwindow* window, GLuint program, GLuint vao) {
     glfwSetKeyCallback(window, key_callback);
     while (!glfwWindowShouldClose(window)) {
         int w, h;
         glfwGetFramebufferSize(window, &w, &h);
-        float ratio = w / (float) h;
-        (void)ratio;
         glViewport(0, 0, w, h);
+        glClearColor(0.2, 0.2, 0.2, 1.0);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        glBindVertexArray(vao);
         glUseProgram(program);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glBindVertexArray(vao);
+        glDrawArrays(GL_POINTS, 0, 3);
         glBindVertexArray(0);
 
         glfwSwapBuffers(window);
@@ -176,6 +174,12 @@ int main(void) {
 
     GLuint buffer = gen_buffer();
     GLuint vao = gen_vertex_array(buffer, vertices); // global vertices
+
+
+    GLenum error;
+    while((error = glGetError()) != GL_NO_ERROR) {
+        fprintf(stderr, "Error!");
+    }
 
 
     run(window, program, vao);
